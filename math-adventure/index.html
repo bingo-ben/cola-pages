@@ -632,7 +632,7 @@ function checkAnswer() {
   if (phase !== 'answering') return;
   if (val === problem.ans) {
     sfxCorrect();
-    window.speechSynthesis.cancel();
+    try { window.speechSynthesis.cancel(); } catch(e) {}
     streak++; stars += streak >= 5 ? 3 : streak >= 3 ? 2 : 1;
     spurtParticles(300, 400, '#ffd700', 25);
     answerBox.style.background = '#e8ffe8';
@@ -670,8 +670,10 @@ function advanceIfWaiting() {
   answerBox.classList.remove('show');
   startProblem();
 }
+// Triple safety: click + RAF timer + setInterval fallback
 answerBox.addEventListener('pointerdown', (e) => { e.preventDefault(); advanceIfWaiting(); });
 canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); advanceIfWaiting(); });
+setInterval(() => { if (phase === 'correctWait' && Date.now() - correctTime > 1200) advanceIfWaiting(); }, 400);
 
 // ===== CONTROLS =====
 stepBtn.addEventListener('pointerdown', (e) => {
