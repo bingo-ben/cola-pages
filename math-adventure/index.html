@@ -278,7 +278,8 @@ let stars = 0, streak = 0, level = 1;
 let problem = null;
 let steps = [];
 let stepIdx = 0;
-let phase = 'idle'; // idle | animating | answering
+let phase = 'idle'; // idle | animating | answering | correctWait
+let correctTime = 0;
 let answer = '';
 let animTimer = 0;
 let animProgress = 0;
@@ -628,6 +629,7 @@ function spurtParticles(x, y, color, n) {
 function checkAnswer() {
   const val = parseInt(answer);
   if (isNaN(val)) return;
+  if (phase !== 'answering') return;
   if (val === problem.ans) {
     sfxCorrect();
     window.speechSynthesis.cancel();
@@ -635,14 +637,12 @@ function checkAnswer() {
     spurtParticles(300, 400, '#ffd700', 25);
     answerBox.style.background = '#e8ffe8';
     answerBox.textContent = '✓ ' + problem.ans;
+    numpad.classList.remove('show');
     updateScores();
     const nl = Math.floor(stars/10)+1;
     if (nl > level) level = nl;
-
-    setTimeout(() => {
-      answerBox.style.background = 'rgba(255,255,255,0.95)';
-      startProblem();
-    }, 1200);
+    phase = 'correctWait';
+    correctTime = time;
   } else {
     sfxWrong();
     streak = 0;
@@ -662,6 +662,16 @@ function updateScores() {
   document.getElementById('sc-streak').textContent = streak;
   document.getElementById('sc-level').textContent = level;
 }
+
+// Tap anywhere to advance after correct answer
+answerBox.addEventListener('pointerdown', (e) => {
+  if (phase === 'correctWait') {
+    e.preventDefault();
+    answerBox.style.background = 'rgba(255,255,255,0.95)';
+    answerBox.classList.remove('show');
+    startProblem();
+  }
+});
 
 // ===== CONTROLS =====
 stepBtn.addEventListener('pointerdown', (e) => {
@@ -710,6 +720,13 @@ function update() {
   // Auto-advance borrow arrow animation
   if (phase==='animating' && steps[stepIdx] && steps[stepIdx].id==='borrow') {
     animProgress = Math.min(1, animProgress + 0.02);
+  }
+
+  // Auto-advance after correct answer (reliable timer in game loop)
+  if (phase === 'correctWait' && time - correctTime > 70) {
+    answerBox.style.background = 'rgba(255,255,255,0.95)';
+    answerBox.classList.remove('show');
+    startProblem();
   }
 
   // Music tick
