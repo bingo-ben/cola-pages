@@ -279,7 +279,7 @@ let problem = null;
 let steps = [];
 let stepIdx = 0;
 let phase = 'idle'; // idle | animating | answering | correctWait
-let correctTime = 0;
+let correctTime = 0; // real timestamp (Date.now)
 let answer = '';
 let animTimer = 0;
 let animProgress = 0;
@@ -642,7 +642,7 @@ function checkAnswer() {
     const nl = Math.floor(stars/10)+1;
     if (nl > level) level = nl;
     phase = 'correctWait';
-    correctTime = time;
+    correctTime = Date.now();
   } else {
     sfxWrong();
     streak = 0;
@@ -664,14 +664,14 @@ function updateScores() {
 }
 
 // Tap anywhere to advance after correct answer
-answerBox.addEventListener('pointerdown', (e) => {
-  if (phase === 'correctWait') {
-    e.preventDefault();
-    answerBox.style.background = 'rgba(255,255,255,0.95)';
-    answerBox.classList.remove('show');
-    startProblem();
-  }
-});
+function advanceIfWaiting() {
+  if (phase !== 'correctWait') return;
+  answerBox.style.background = 'rgba(255,255,255,0.95)';
+  answerBox.classList.remove('show');
+  startProblem();
+}
+answerBox.addEventListener('pointerdown', (e) => { e.preventDefault(); advanceIfWaiting(); });
+canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); advanceIfWaiting(); });
 
 // ===== CONTROLS =====
 stepBtn.addEventListener('pointerdown', (e) => {
@@ -722,8 +722,8 @@ function update() {
     animProgress = Math.min(1, animProgress + 0.02);
   }
 
-  // Auto-advance after correct answer (reliable timer in game loop)
-  if (phase === 'correctWait' && time - correctTime > 70) {
+  // Auto-advance after correct answer (real clock, not frame counter)
+  if (phase === 'correctWait' && Date.now() - correctTime > 1000) {
     answerBox.style.background = 'rgba(255,255,255,0.95)';
     answerBox.classList.remove('show');
     startProblem();
