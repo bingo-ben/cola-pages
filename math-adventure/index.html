@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>数学大冒险 — 进位借位训练</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100dvh;
+    overflow: hidden;
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #game-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: 100dvh;
+    max-height: 860px;
+    background: linear-gradient(180deg, #87CEEB 0%, #a8e6cf 45%, #7ec850 70%, #5a9e3f 100%);
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  canvas { display:block; width:100%; height:100%; }
+
+  #controls {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding: 12px 16px 22px;
+  }
+  #step-btn {
+    background: #4ecdc4; color: white; border: none;
+    border-radius: 16px; padding: 14px 40px;
+    font-size: 22px; font-weight: bold; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(78,205,196,0.4);
+    transition: transform 0.12s;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 1px;
+  }
+  #step-btn:active { transform: scale(0.94); }
+  #step-btn.gold { background: #ffd700; color: #333; box-shadow: 0 4px 16px rgba(255,215,0,0.5); }
+
+  #numpad {
+    display: none;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px; width: 100%; max-width: 310px;
+  }
+  #numpad.show { display: grid; }
+  .np-btn {
+    background: rgba(255,255,255,0.92); border: none;
+    border-radius: 14px; padding: 14px 0;
+    font-size: 24px; font-weight: bold; color: #333; cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transition: transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .np-btn:active { transform: scale(0.9); }
+  .np-btn.del { color: #ff6b6b; font-size: 18px; }
+  .np-btn.ok { background: #4ecdc4; color: white; font-size: 20px; grid-row: span 2; }
+  .np-btn.wide { grid-column: span 2; }
+
+  #answer-box {
+    display: none;
+    background: rgba(255,255,255,0.95);
+    border: 3px solid #ffd700;
+    border-radius: 16px;
+    padding: 10px 20px;
+    font-size: 28px; font-weight: bold; color: #333;
+    text-align: center; width: 140px; letter-spacing: 4px;
+    box-shadow: 0 4px 16px rgba(255,215,0,0.3);
+    transition: transform 0.15s;
+  }
+  #answer-box.show { display: block; }
+  #answer-box.shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%,100% { transform:translateX(0); }
+    25% { transform:translateX(-8px); }
+    75% { transform:translateX(8px); }
+  }
+
+  #score-bar {
+    position: absolute; top: 14px; left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: center; pointer-events: none;
+  }
+  .sb-item {
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px; padding: 5px 12px;
+    font-size: 15px; font-weight: bold; color: #333;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  #sound-btn {
+    pointer-events: auto;
+    background: rgba(255,255,255,0.9);
+    border: none; border-radius: 12px;
+    padding: 5px 10px; font-size: 18px; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s;
+  }
+  #sound-btn:active { transform: scale(0.9); }
+</style>
+</head>
+<body>
+<div id="game-wrapper">
+  <canvas id="game"></canvas>
+  <div id="score-bar">
+    <div class="sb-item">⭐ <span id="sc-stars">0</span></div>
+    <div class="sb-item">🔥 <span id="sc-streak">0</span>连对</div>
+    <div class="sb-item">🏆 <span id="sc-level">1</span></div>
+    <button id="sound-btn" title="声音">🔊</button>
+  </div>
+  <div id="controls">
+    <div id="answer-box"></div>
+    <button id="step-btn">开始</button>
+    <div id="numpad">
+      <button class="np-btn" data-k="7">7</button>
+      <button class="np-btn" data-k="8">8</button>
+      <button class="np-btn" data-k="9">9</button>
+      <button class="np-btn del" data-k="del">⌫</button>
+      <button class="np-btn" data-k="4">4</button>
+      <button class="np-btn" data-k="5">5</button>
+      <button class="np-btn" data-k="6">6</button>
+      <button class="np-btn del" data-k="clr">C</button>
+      <button class="np-btn" data-k="1">1</button>
+      <button class="np-btn" data-k="2">2</button>
+      <button class="np-btn" data-k="3">3</button>
+      <button class="np-btn ok" data-k="ok">✓</button>
+      <button class="np-btn wide" data-k="0">0</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const W = 480, H = 860;
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+canvas.width = W; canvas.height = H;
+
+const answerBox = document.getElementById('answer-box');
+const stepBtn = document.getElementById('step-btn');
+const numpad = document.getElementById('numpad');
+const soundBtn = document.getElementById('sound-btn');
+
+// ===== AUDIO =====
+let audioCtx = null;
+let soundOn = true;
+let musicGain = null;
+let musicPlaying = false;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    musicGain = audioCtx.createGain();
+    musicGain.gain.value = 0.06;
+    musicGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, startTime, duration, gainVal=0.08, type='sine') {
+  if (!soundOn || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type; osc.frequency.value = freq;
+  g.gain.setValueAtTime(gainVal, startTime);
+  g.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(startTime); osc.stop(startTime + duration);
+}
+
+function sfxCorrect() {
+  if (!soundOn || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  playTone(523, t, 0.12, 0.1);
+  playTone(659, t+0.1, 0.12, 0.1);
+  playTone(784, t+0.2, 0.18, 0.12);
+}
+
+function sfxWrong() {
+  if (!soundOn || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  playTone(200, t, 0.2, 0.07, 'square');
+  playTone(160, t+0.15, 0.2, 0.06, 'square');
+}
+
+function sfxStep() {
+  if (!soundOn || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  playTone(440, t, 0.06, 0.05);
+}
+
+// Pentatonic background music loop
+let musicNotes = null;
+let musicNoteIdx = 0;
+let musicNextTime = 0;
+
+function startMusic() {
+  if (!soundOn || !audioCtx) return;
+  if (musicPlaying) return;
+  musicPlaying = true;
+  // Chinese pentatonic: C4 D4 E4 G4 A4 C5
+  const scale = [262, 294, 330, 392, 440, 523];
+  musicNotes = [];
+  // Generate a gentle pattern
+  const pattern = [0,2,3,1,4,2,0,3,5,4,2,1,0];
+  let t = audioCtx.currentTime + 0.3;
+  for (let i = 0; i < pattern.length; i++) {
+    musicNotes.push({ freq: scale[pattern[i]], time: t, dur: 0.35 + Math.random()*0.15 });
+    t += 0.55 + Math.random()*0.2;
+  }
+  musicNoteIdx = 0;
+  musicNextTime = audioCtx.currentTime;
+}
+
+function stopMusic() {
+  musicPlaying = false;
+  musicNotes = null;
+}
+
+function tickMusic() {
+  if (!musicPlaying || !audioCtx || !musicNotes) return;
+  const now = audioCtx.currentTime;
+  while (musicNoteIdx < musicNotes.length && musicNotes[musicNoteIdx].time <= now + 0.1) {
+    const n = musicNotes[musicNoteIdx];
+    playTone(n.freq, n.time, n.dur, 0.04);
+    musicNoteIdx++;
+  }
+  if (musicNoteIdx >= musicNotes.length) {
+    // Generate next loop
+    const scale = [262, 294, 330, 392, 440, 523];
+    const pattern = [0,2,3,1,4,2,0,3,5,4,2,1,0];
+    musicNotes = [];
+    musicNoteIdx = 0;
+    let t = musicNextTime + 0.5;
+    for (let i = 0; i < pattern.length; i++) {
+      musicNotes.push({ freq: scale[pattern[i]], time: t, dur: 0.35 + Math.random()*0.15 });
+      t += 0.55 + Math.random()*0.2;
+    }
+  }
+}
+
+// TTS: speak step text
+let lastSpoken = '';
+function speakStep(text) {
+  if (!soundOn || text === lastSpoken) return;
+  lastSpoken = text;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 0.9;
+  u.pitch = 1.1;
+  u.volume = 0.9;
+  window.speechSynthesis.speak(u);
+}
+
+soundBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  initAudio();
+  soundOn = !soundOn;
+  soundBtn.textContent = soundOn ? '🔊' : '🔇';
+  if (!soundOn) {
+    stopMusic();
+    window.speechSynthesis.cancel();
+  } else if (problem) {
+    startMusic();
+  }
+});
+
+// ===== STATE =====
+let stars = 0, streak = 0, level = 1;
+let problem = null;
+let steps = [];
+let stepIdx = 0;
+let phase = 'idle'; // idle | animating | answering
+let answer = '';
+let animTimer = 0;
+let animProgress = 0;
+let clouds = [];
+let particles = [];
+let charAnim = 'idle';
+let charAnimTimer = 0;
+let time = 0;
+
+for (let i = 0; i < 6; i++) {
+  clouds.push({ x: Math.random()*W, y: 20+Math.random()*100, w: 50+Math.random()*60, sp: 0.15+Math.random()*0.3 });
+}
+
+// ===== PROBLEM GENERATION =====
+function genProblem() {
+  const isAdd = Math.random() < 0.55;
+  const max = Math.min(20 + level * 8, 99);
+  const min = Math.min(10 + level * 2, 50);
+
+  if (isAdd) {
+    let a, b;
+    do { a = min + Math.floor(Math.random()*(max-min)); b = min + Math.floor(Math.random()*(max-min)); }
+    while ((a%10)+(b%10) < 10 || a+b > 99);
+    return { a, b, op: '+', ans: a+b, type: 'carry' };
+  } else {
+    let a, b;
+    do { a = min+5+Math.floor(Math.random()*(max-min-5)); b = min+Math.floor(Math.random()*(a-min)); }
+    while ((a%10) >= (b%10) || a-b < 3);
+    return { a, b, op: '−', ans: a-b, type: 'borrow' };
+  }
+}
+
+// ===== BUILD ANIMATION STEPS =====
+function buildSteps(p) {
+  const aTens = Math.floor(p.a / 10), aOnes = p.a % 10;
+  const bTens = Math.floor(p.b / 10), bOnes = p.b % 10;
+
+  if (p.type === 'borrow') {
+    const newOnes = aOnes + 10;
+    const newTens = aTens - 1;
+    const onesResult = newOnes - bOnes;
+    const tensResult = newTens - bTens;
+    return [
+      { id:'intro',  label:'个位', text:`看个位：${aOnes} 减 ${bOnes}` },
+      { id:'need',   label:'不够', text:`${aOnes} 不够减 ${bOnes}！` },
+      { id:'borrow', label:'借位', text:`向十位借 1，${aTens} 变成 ${newTens}` },
+      { id:'toones', label:'变成', text:`个位 ${aOnes} 变成 ${newOnes}` },
+      { id:'ones',   label:'个位', text:`${newOnes} 减 ${bOnes} 等于 ${onesResult}` },
+      { id:'tens',   label:'十位', text:`十位：${aTens} 被借走 1 变成 ${newTens}，${newTens} 减 ${bTens} 等于 ${tensResult}` },
+      { id:'done',   label:'答案', text:`答案是 ${p.ans}，你来输入吧！` },
+    ];
+  } else {
+    const onesSum = aOnes + bOnes;
+    const carry = Math.floor(onesSum / 10);
+    const onesR = onesSum % 10;
+    const tensSum = aTens + bTens + carry;
+    return [
+      { id:'intro',  label:'个位', text:`看个位：${aOnes} 加 ${bOnes} 等于 ${onesSum}` },
+      { id:'carry',  label:'进位', text:`个位相加等于 ${onesSum}，满 10 了！往十位进 ${carry}，个位写 ${onesR}` },
+      { id:'tens',   label:'十位', text:`十位：${aTens} 加 ${bTens} 加 ${carry} 等于 ${tensSum}` },
+      { id:'done',   label:'答案', text:`答案是 ${p.ans}，你来输入吧！` },
+    ];
+  }
+}
+
+// ===== RENDER =====
+function drawScene() {
+  // Sky
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#87CEEB'); grad.addColorStop(0.5,'#b8e6f0');
+  grad.addColorStop(0.8,'#a8e6cf'); grad.addColorStop(1,'#7ec850');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+
+  // Clouds
+  clouds.forEach(c => {
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.beginPath();
+    ctx.arc(c.x,c.y,c.w*0.35,0,Math.PI*2);
+    ctx.arc(c.x-c.w*0.22,c.y+3,c.w*0.26,0,Math.PI*2);
+    ctx.arc(c.x+c.w*0.22,c.y+1,c.w*0.28,0,Math.PI*2);
+    ctx.fill();
+  });
+
+  // Hills
+  ctx.fillStyle = '#8fd15a';
+  ctx.beginPath(); ctx.moveTo(0,195);
+  ctx.quadraticCurveTo(80,170,180,190);
+  ctx.quadraticCurveTo(300,165,400,188);
+  ctx.quadraticCurveTo(460,178,W,195);
+  ctx.lineTo(W,195); ctx.lineTo(0,195); ctx.fill();
+
+  // Ground
+  ctx.fillStyle = '#7ec850'; ctx.fillRect(0,195,W,15);
+  ctx.fillStyle = '#6ab840'; ctx.fillRect(0,210,W,H-210);
+
+  // Character (small, bottom-left of scene)
+  const cx = 80, cy = 170 + Math.sin(time*0.08)*2;
+  ctx.save(); ctx.translate(cx,cy);
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.beginPath(); ctx.ellipse(0,18,12,4,0,0,Math.PI*2); ctx.fill();
+  // Body
+  ctx.fillStyle = '#ff8c42'; ctx.beginPath(); ctx.roundRect(-10,-3,20,22,6); ctx.fill();
+  // Head
+  ctx.fillStyle = '#ffe0bd'; ctx.beginPath(); ctx.arc(0,-12,11,0,Math.PI*2); ctx.fill();
+  // Eyes
+  ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(-4,-14,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(4,-14,2,0,Math.PI*2); ctx.fill();
+  // Hat
+  ctx.fillStyle = '#4ecdc4'; ctx.beginPath(); ctx.ellipse(0,-22,11,4,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#45b7aa'; ctx.beginPath(); ctx.roundRect(-5,-30,10,10,3); ctx.fill();
+  // Legs
+  ctx.fillStyle = '#5c4033'; ctx.fillRect(-6,17,5,7); ctx.fillRect(1,17,5,7);
+  ctx.restore();
+}
+
+function drawCalcBoard() {
+  if (!problem) return;
+
+  const p = problem;
+  const aTens = Math.floor(p.a/10), aOnes = p.a%10;
+  const bTens = Math.floor(p.b/10), bOnes = p.b%10;
+  const newOnes = p.type==='borrow' ? aOnes+10 : null;
+  const newTens = p.type==='borrow' ? aTens-1 : null;
+  const onesSum = p.type==='carry' ? aOnes+bOnes : null;
+
+  const bx = 120, by = 260; // board origin
+  const colW = 100;
+  const onesX = bx + colW + 60;
+  const tensX = bx + 20;
+
+  // Board background
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.beginPath(); ctx.roundRect(bx-10, by-30, colW*2+80, 250, 16); ctx.fill();
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(bx-10, by-30, colW*2+80, 250, 16); ctx.stroke();
+
+  // Horizontal expression above board (on green background)
+  ctx.fillStyle = '#333';
+  ctx.font = 'bold 28px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  const opChar = p.op === '−' ? '−' : '+';
+  ctx.fillText(`${p.a} ${opChar} ${p.b} = ?`, bx+colW+20, by-40);
+
+  // Thin separator
+  ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(bx+10, by-10); ctx.lineTo(bx+colW*2+70, by-10); ctx.stroke();
+
+  // Column labels
+  ctx.fillStyle = '#999'; ctx.font = '14px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('十位', tensX+30, by+0);
+  ctx.fillText('个位', onesX+30, by+0);
+
+  // ===== DRAW DIGITS - dynamic based on step =====
+  const renderIdx = Math.min(stepIdx, steps.length - 1);
+  const step = steps[renderIdx];
+  const stepId = step ? step.id : 'intro';
+
+  // Helper to draw a digit in a cell
+  function cellDigit(x, y, digit, color='#333', size=44, strike=false, highlight=false) {
+    ctx.fillStyle = color;
+    ctx.font = `bold ${size}px "PingFang SC","Microsoft YaHei",sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(String(digit), x+30, y+48);
+    if (strike) {
+      ctx.strokeStyle = '#ff6b6b'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x+8, y+26); ctx.lineTo(x+52, y+46); ctx.stroke();
+    }
+    if (highlight) {
+      ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(x+2, y+4, 56, 50, 8); ctx.stroke();
+    }
+  }
+
+  // Show/hide based on which step we're on
+  const showBorrow = p.type === 'borrow';
+  const afterBorrow = showBorrow && ['toones','ones','tens','done'].includes(stepId);
+  const showOnesResult = ['ones','tens','done'].includes(stepId) || (p.type==='carry' && ['carry','tens','done'].includes(stepId));
+  const showTensResult = ['tens','done'].includes(stepId) || (p.type==='carry' && ['tens','done'].includes(stepId));
+  const showCarryMark = p.type==='carry' && ['carry','tens','done'].includes(stepId);
+  const showFullAnswer = stepId === 'done';
+
+  // Top number: tens
+  if (showBorrow && ['borrow','toones','ones','tens','done'].includes(stepId)) {
+    // Show new tens above the crossed-out original
+    ctx.fillStyle = '#4ecdc4'; ctx.font = 'bold 28px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(newTens), tensX+30, by-2);
+    cellDigit(tensX, by-2, aTens, '#999', 40, true);
+  } else {
+    cellDigit(tensX, by-2, aTens, '#333', 44, false, stepId==='borrow');
+  }
+
+  // Top number: ones
+  if (afterBorrow) {
+    cellDigit(onesX, by-2, newOnes, '#4ecdc4', 44, false, stepId==='toones');
+  } else {
+    const hlOnes = (stepId==='intro'||stepId==='need') || (p.type==='carry' && (stepId==='intro'||stepId==='carry'));
+    cellDigit(onesX, by-2, aOnes, '#333', 44, false, hlOnes);
+  }
+
+  // Operator
+  ctx.fillStyle = '#333'; ctx.font = 'bold 44px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(p.op, bx-20, by+55);
+
+  // Bottom number: tens
+  cellDigit(tensX, by+55, bTens, '#333', 44, false,
+    showBorrow && (stepId==='intro'||stepId==='need'));
+
+  // Bottom number: ones
+  cellDigit(onesX, by+55, bOnes, '#ff6b6b', 44, false,
+    (stepId==='intro'||stepId==='need') || (p.type==='carry' && (stepId==='intro'||stepId==='carry')));
+
+  // Underline (between bottom number and answer row)
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(bx-4, by+115); ctx.lineTo(bx+colW*2+64, by+115); ctx.stroke();
+
+  // Carry mark (little 1 above tens during carry)
+  if (showCarryMark) {
+    const carry = Math.floor(onesSum/10);
+    ctx.fillStyle = '#ff6b6b'; ctx.font = 'bold 26px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`进 ${carry}`, tensX+30, by-38);
+    // Arrow
+    ctx.strokeStyle = '#ff6b6b'; ctx.lineWidth = 2;
+    ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(tensX+30, by-30); ctx.lineTo(tensX+30, by-14); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Answer row
+  if (showOnesResult || showTensResult) {
+    const oResult = p.type==='borrow' ? newOnes-bOnes : onesSum%10;
+    const tResult = p.type==='borrow' ? newTens-bTens : aTens+bTens+Math.floor(onesSum/10);
+
+    if (showFullAnswer) {
+      // Show answer digits in proper columns
+      const ansTens = Math.floor(p.ans/10);
+      const ansOnes = p.ans % 10;
+      cellDigit(tensX, by+120, ansTens, '#4ecdc4', 48);
+      cellDigit(onesX, by+120, ansOnes, '#4ecdc4', 48);
+    } else if (showTensResult) {
+      cellDigit(tensX, by+120, tResult, '#4ecdc4', 44);
+      cellDigit(onesX, by+120, oResult, '#4ecdc4', 44);
+    } else {
+      cellDigit(onesX, by+120, oResult, '#4ecdc4', 44);
+    }
+  }
+
+  // ===== Borrow arrow animation (visible during 'borrow' and 'toones' steps) =====
+  if (showBorrow && ['borrow','toones'].includes(stepId)) {
+    const progress = stepId==='toones' ? 1 : animProgress;
+    const ax = tensX + 40;
+    const ay = by + 10;
+    const bx2 = onesX + 10;
+    const by2 = by - 2;
+
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    const cp1x = ax + 20, cp1y = ay - 10;
+    const cp2x = bx2 - 20, cp2y = by2 - 10;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, bx2, by2);
+    ctx.stroke();
+
+    // Animated dot traveling along the arc
+    const t = progress;
+    const dx = Math.pow(1-t,3)*ax + 3*Math.pow(1-t,2)*t*cp1x + 3*(1-t)*t*t*cp2x + Math.pow(t,3)*bx2;
+    const dy = Math.pow(1-t,3)*ay + 3*Math.pow(1-t,2)*t*cp1y + 3*(1-t)*t*t*cp2y + Math.pow(t,3)*by2;
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath(); ctx.arc(dx, dy, 6, 0, Math.PI*2); ctx.fill();
+
+    // Little "1" label near the dot
+    ctx.fillStyle = '#ffd700'; ctx.font = 'bold 18px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('1', dx-2, dy-10);
+  }
+
+  // ===== Explanation text below the board =====
+  if (step) {
+    ctx.fillStyle = '#333'; ctx.font = 'bold 18px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(step.text, W/2, by+190);
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.fillStyle = p.c; ctx.globalAlpha = p.life/60;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ===== GAME LOGIC =====
+function startProblem() {
+  initAudio();
+  problem = genProblem();
+  steps = buildSteps(problem);
+  stepIdx = 0;
+  phase = 'animating';
+  answer = '';
+  animProgress = 0;
+  lastSpoken = '';
+  answerBox.classList.remove('show');
+  answerBox.textContent = '';
+  numpad.classList.remove('show');
+  stepBtn.textContent = '下一步 ▶';
+  stepBtn.classList.remove('gold');
+  stepBtn.style.display = 'block';
+  if (soundOn && !audioCtx) initAudio();
+  startMusic();
+  // Speak first step
+  if (steps[0]) setTimeout(() => speakStep(steps[0].text), 200);
+}
+
+function advanceStep() {
+  if (phase !== 'animating') return;
+  sfxStep();
+  stepIdx++;
+  animProgress = 0;
+
+  if (stepIdx >= steps.length) {
+    phase = 'answering';
+    stepBtn.style.display = 'none';
+    answerBox.classList.add('show');
+    answerBox.textContent = '?';
+    numpad.classList.add('show');
+  } else if (stepIdx === steps.length - 1) {
+    stepBtn.textContent = '我来答 ✓';
+    stepBtn.classList.add('gold');
+  }
+  // Speak current step text
+  if (stepIdx < steps.length && steps[stepIdx]) {
+    speakStep(steps[stepIdx].text);
+  }
+}
+
+function spurtParticles(x, y, color, n) {
+  for (let i=0;i<n;i++) {
+    const a = Math.random()*Math.PI*2;
+    const sp = 2+Math.random()*5;
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,life:30+Math.random()*40,c:color,s:3+Math.random()*5});
+  }
+}
+
+function checkAnswer() {
+  const val = parseInt(answer);
+  if (isNaN(val)) return;
+  if (val === problem.ans) {
+    sfxCorrect();
+    window.speechSynthesis.cancel();
+    streak++; stars += streak >= 5 ? 3 : streak >= 3 ? 2 : 1;
+    spurtParticles(300, 400, '#ffd700', 25);
+    answerBox.style.background = '#e8ffe8';
+    answerBox.textContent = '✓ ' + problem.ans;
+    updateScores();
+    const nl = Math.floor(stars/10)+1;
+    if (nl > level) level = nl;
+
+    setTimeout(() => {
+      answerBox.style.background = 'rgba(255,255,255,0.95)';
+      startProblem();
+    }, 1200);
+  } else {
+    sfxWrong();
+    streak = 0;
+    answerBox.classList.add('shake');
+    answerBox.style.background = '#ffe8e8';
+    setTimeout(() => {
+      answerBox.classList.remove('shake');
+      answerBox.style.background = 'rgba(255,255,255,0.95)';
+      answer = ''; answerBox.textContent = '?';
+    }, 500);
+    updateScores();
+  }
+}
+
+function updateScores() {
+  document.getElementById('sc-stars').textContent = stars;
+  document.getElementById('sc-streak').textContent = streak;
+  document.getElementById('sc-level').textContent = level;
+}
+
+// ===== CONTROLS =====
+stepBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  initAudio();
+  if (phase === 'idle') {
+    startProblem();
+  } else if (phase === 'animating') {
+    advanceStep();
+  }
+});
+
+document.querySelectorAll('.np-btn').forEach(b => {
+  b.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const k = b.dataset.k;
+    if (k === 'del') answer = answer.slice(0,-1);
+    else if (k === 'clr') answer = '';
+    else if (k === 'ok') checkAnswer();
+    else if (answer.length < 3) answer += k;
+    answerBox.textContent = answer || '?';
+  });
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key >= '0' && e.key <= '9') {
+    if (phase==='answering' && answer.length<3) { answer += e.key; answerBox.textContent = answer||'?'; }
+  } else if (e.key === 'Backspace') {
+    if (phase==='answering') { answer = answer.slice(0,-1); answerBox.textContent = answer||'?'; }
+  } else if (e.key === 'Enter') {
+    if (phase==='answering') checkAnswer();
+    else if (phase==='animating') advanceStep();
+    else if (phase==='idle') startProblem();
+  } else if (e.key === ' ') {
+    if (phase==='animating') advanceStep();
+  }
+});
+
+// ===== GAME LOOP =====
+function update() {
+  time++;
+  clouds.forEach(c => { c.x += c.sp; if (c.x > W+80) c.x = -80; });
+  particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.vy+=0.12; p.life--; });
+  particles = particles.filter(p=>p.life>0);
+
+  // Auto-advance borrow arrow animation
+  if (phase==='animating' && steps[stepIdx] && steps[stepIdx].id==='borrow') {
+    animProgress = Math.min(1, animProgress + 0.02);
+  }
+
+  // Music tick
+  if (musicPlaying) tickMusic();
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  drawScene();
+  if (problem) drawCalcBoard();
+  drawParticles();
+
+  // Idle hint
+  if (phase === 'idle') {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.font = 'bold 22px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('来练进位借位吧！', W/2, 380);
+  }
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+
+updateScores();
+loop();
+</script>
+</body>
+</html>
