@@ -71,11 +71,12 @@
     background: rgba(255,255,255,0.95);
     border: 3px solid #ffd700;
     border-radius: 16px;
-    padding: 10px 20px;
-    font-size: 28px; font-weight: bold; color: #333;
-    text-align: center; width: 140px; letter-spacing: 4px;
+    padding: 10px 24px;
+    font-size: 26px; font-weight: bold; color: #333;
+    text-align: center; min-width: 140px; letter-spacing: 2px;
     box-shadow: 0 4px 16px rgba(255,215,0,0.3);
     transition: transform 0.15s;
+    white-space: nowrap;
   }
   #answer-box.show { display: block; }
   #answer-box.shake { animation: shake 0.4s ease; }
@@ -606,7 +607,7 @@ function advanceStep() {
     phase = 'answering';
     stepBtn.style.display = 'none';
     answerBox.classList.add('show');
-    answerBox.textContent = '?';
+    answerBox.textContent = `${problem.a} ${problem.op} ${problem.b} = ?`;
     numpad.classList.add('show');
   } else if (stepIdx === steps.length - 1) {
     stepBtn.textContent = '我来答 ✓';
@@ -636,7 +637,7 @@ function checkAnswer() {
     streak++; stars += streak >= 5 ? 3 : streak >= 3 ? 2 : 1;
     spurtParticles(300, 400, '#ffd700', 25);
     answerBox.style.background = '#e8ffe8';
-    answerBox.textContent = '✓ ' + problem.ans;
+    answerBox.textContent = `${problem.a} ${problem.op} ${problem.b} = ${problem.ans}  ✓`;
     numpad.classList.remove('show');
     updateScores();
     const nl = Math.floor(stars/10)+1;
@@ -651,7 +652,7 @@ function checkAnswer() {
     setTimeout(() => {
       answerBox.classList.remove('shake');
       answerBox.style.background = 'rgba(255,255,255,0.95)';
-      answer = ''; answerBox.textContent = '?';
+      answer = ''; answerBox.textContent = `${problem.a} ${problem.op} ${problem.b} = ?`;
     }, 500);
     updateScores();
   }
@@ -694,15 +695,15 @@ document.querySelectorAll('.np-btn').forEach(b => {
     else if (k === 'clr') answer = '';
     else if (k === 'ok') checkAnswer();
     else if (answer.length < 3) answer += k;
-    answerBox.textContent = answer || '?';
+    answerBox.textContent = `${problem.a} ${problem.op} ${problem.b} = ${answer || '?'}`;
   });
 });
 
 document.addEventListener('keydown', (e) => {
   if (e.key >= '0' && e.key <= '9') {
-    if (phase==='answering' && answer.length<3) { answer += e.key; answerBox.textContent = answer||'?'; }
+    if (phase==='answering' && answer.length<3) { answer += e.key; answerBox.textContent = `${problem.a} ${problem.op} ${problem.b} = ${answer||'?'}`; }
   } else if (e.key === 'Backspace') {
-    if (phase==='answering') { answer = answer.slice(0,-1); answerBox.textContent = answer||'?'; }
+    if (phase==='answering') { answer = answer.slice(0,-1); answerBox.textContent = `${problem.a} ${problem.op} ${problem.b} = ${answer||'?'}`; }
   } else if (e.key === 'Enter') {
     if (phase==='answering') checkAnswer();
     else if (phase==='animating') advanceStep();
