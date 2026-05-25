@@ -13,6 +13,12 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 .header .sub{font-size:13px;color:#999}
 .header .stats{margin-top:10px;font-size:12px;color:#888}
 .header .stats span{margin:0 8px}
+.refresh-bar{text-align:center;padding:12px 0;margin-bottom:16px}
+#refresh-btn{background:#4ecdc4;color:#fff;border:none;border-radius:20px;padding:10px 28px;font-size:15px;cursor:pointer;font-weight:600;box-shadow:0 2px 8px rgba(78,205,196,.3);transition:all .15s;-webkit-tap-highlight-color:transparent}
+#refresh-btn:active{transform:scale(.95);background:#3dbdb5}
+#refresh-btn.loading{opacity:.6;pointer-events:none}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;z-index:99;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
 .date-section{margin-bottom:24px}
 .date-head{font-size:16px;color:#1a1a2e;padding:6px 0;border-bottom:1px solid #e8e8e8;margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .date-head .badge{font-size:12px;background:#4ecdc4;color:#fff;padding:2px 8px;border-radius:10px;font-weight:400}
@@ -40,6 +46,11 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
 <div class="sub">2026年05月25日 周一 · 数据：民航资源网 + Aviation Herald</div>
 <div class="stats"><span>🇨🇳 民航资源网 0条</span><span>🛫 Aviation Herald 12条</span></div>
 </div>
+<div class="refresh-bar">
+  <button id="refresh-btn" onclick="doRefresh()">🔄 刷新数据</button>
+  <div style="font-size:11px;color:#aaa;margin-top:6px">生成时间：22:51 · 点击复制刷新指令</div>
+</div>
+<div class="toast" id="toast"></div>
 <div class="date-section">
 <h2 class="date-head">📅 2026-05-25<span class="badge">6条</span></h2>
 <div class="news-item">
@@ -194,7 +205,40 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;backgr
             </div>
 </div>
 
-<div class="footer">自动生成 · 2026-05-25 22:41</div>
+<div class="footer">自动生成 · 2026-05-25 22:51 · <a href="https://bingo-ben.github.io/cola-pages/" style="color:#bbb">Cola Pages</a></div>
 </div>
+<script>
+function doRefresh(){
+  const btn=document.getElementById('refresh-btn');
+  btn.textContent='⏳ 复制中...';
+  btn.classList.add('loading');
+  const cmd='更新民航日报';
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(cmd).then(()=>{
+      showToast('✅ 已复制「'+cmd+'」，发给 Cola 即可刷新');
+      btn.textContent='🔄 刷新数据';
+      btn.classList.remove('loading');
+    }).catch(()=>{
+      fallbackCopy(cmd);
+    });
+  }else{
+    fallbackCopy(cmd);
+  }
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('✅ 已复制「'+text+'」，发给 Cola 即可刷新')}catch(e){showToast('📋 请复制：'+text)}
+  document.body.removeChild(ta);
+  const btn=document.getElementById('refresh-btn');
+  btn.textContent='🔄 刷新数据';btn.classList.remove('loading');
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
 </body>
 </html>
